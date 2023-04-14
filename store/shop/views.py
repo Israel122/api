@@ -136,6 +136,8 @@ class UpdateCartItemView(generics.UpdateAPIView):
 
 
 class OrderView(generics.CreateAPIView):
+    
+    # your order cannot be sent from the front
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
@@ -143,26 +145,33 @@ class OrderView(generics.CreateAPIView):
     #     if
 
     def post(self, request):
+        # why do you need all products in a supermarket to checkout
         products = Product.objects.all()
+        # you do not need to serialize twice
         serializer = OrderSerializer(data=request.data)
         if serializer.is_valid():
             # cartCreate = Cart(cartSession=random.randint, person=)
             # cartCreate.save()
+            
             carts = serializer.validated_data['cart']
             cartitem = CartItem.objects.filter(cart=carts)
             product_is_valid = False
             cost = 0
             for cart in cartitem:
+                # you cannot be searching all products always
                 if cart.product in products:
                     trans = Product.objects.get(pk=cart.product.pk)
                     if cart.quantity <= trans.quantity:
                         cost += cart.cost
+                        
+                        # are you sure of this logic
                         trans.\
                             quantity -= cart.quantity
                         product_is_valid = True
                         trans.save()
                     else:
                         return Response({'error': "The Quantity of the Product is not available"})
+                    # why do you need break
                         break
                 else:
                     cart.delete()
@@ -172,6 +181,7 @@ class OrderView(generics.CreateAPIView):
                     # balance = payment.balance
                     # order_payment = Payment.objects.get(pk=payment.pk)
                     payment = Payment.objects.get(person=carts.person)
+                    # transactions needs to be saved either successful or not
                     if cost <= payment.balance:
                         payment.balance - cost
                         payment.save()
